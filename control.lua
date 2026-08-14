@@ -83,7 +83,20 @@ local function mapper_matches_selected_prototype(mapper, selected_prototype)
     return false
   end
 
-  return mapper.type == selected_prototype.base_type and mapper.name == selected_prototype.name
+  if mapper.name ~= selected_prototype.name then
+    return false
+  end
+
+  return mapper.type == selected_prototype.base_type or selected_prototype.base_type == "entity-ghost"
+end
+
+-- Use the only mapper as the target when the planner UI provides no selection payload.
+local function mapper_matches_planner_target(mapper, selected_prototype, mapper_count)
+  if selected_prototype then
+    return mapper_matches_selected_prototype(mapper, selected_prototype)
+  end
+
+  return mapper_count == 1 and mapper ~= nil
 end
 
 -- Clear the quality on one upgrade mapper so the planner shows Any quality.
@@ -116,12 +129,12 @@ local function apply_any_quality_to_upgrade_planner(stack, selected_prototype)
 
   for i = 1, mapper_count do
     local source = stack.get_mapper(i, "from")
-    if mapper_matches_selected_prototype(source, selected_prototype) and apply_any_quality_to_upgrade_mapper(stack, i, "from", source) then
+    if mapper_matches_planner_target(source, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "from", source) then
       changes = changes + 1
     end
 
     local destination = stack.get_mapper(i, "to")
-    if mapper_matches_selected_prototype(destination, selected_prototype) and apply_any_quality_to_upgrade_mapper(stack, i, "to", destination) then
+    if mapper_matches_planner_target(destination, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "to", destination) then
       changes = changes + 1
     end
   end
@@ -190,7 +203,7 @@ local function apply_quality_to_upgrade_planner(stack, quality_name, selected_pr
 
   for i = 1, mapper_count do
     local source = stack.get_mapper(i, "from")
-    if mapper_matches_selected_prototype(source, selected_prototype) and source.quality ~= quality_name then
+    if mapper_matches_planner_target(source, selected_prototype, mapper_count) and source.quality ~= quality_name then
       source.quality = quality_name
       source.comparator = nil
 
@@ -204,7 +217,7 @@ local function apply_quality_to_upgrade_planner(stack, quality_name, selected_pr
     end
 
     local destination = stack.get_mapper(i, "to")
-    if mapper_matches_selected_prototype(destination, selected_prototype) and destination.quality ~= quality_name then
+    if mapper_matches_planner_target(destination, selected_prototype, mapper_count) and destination.quality ~= quality_name then
       destination.quality = quality_name
 
       local ok = pcall(function()
@@ -331,15 +344,6 @@ local function apply_upgrade_any_quality(player, event)
   end
 
   local selected_prototype = event and event.selected_prototype
-  if not selected_prototype then
-    player.create_local_flying_text({
-      text = { "quality-maxer-shortcut.no-target" },
-      create_at_cursor = true,
-      color = { r = 1.0, g = 0.8, b = 0.2 }
-    })
-    return
-  end
-
   local stack = get_upgrade_planner_stack(player)
   if not stack then
     player.create_local_flying_text({
