@@ -5,7 +5,8 @@
   "author": "Hax + Copilot",
   "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.0.0"
+    "base >= 2.0.0",
+    "quality >= 2.0.0"
   ],
   "description": "Adds configurable shortcuts for highest-quality blueprint/ghost/planner behavior and for setting hovered upgrade planner quality to Any quality (including modded quality tiers)."
 }
