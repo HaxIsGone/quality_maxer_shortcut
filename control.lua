@@ -87,7 +87,11 @@ local function mapper_matches_selected_prototype(mapper, selected_prototype)
     return false
   end
 
-  return mapper.type == selected_prototype.base_type or selected_prototype.base_type == "entity-ghost"
+  if selected_prototype.base_type then
+    return mapper.type == selected_prototype.base_type or selected_prototype.base_type == "entity-ghost"
+  end
+
+  return mapper.type == "entity"
 end
 
 -- Use the only mapper as the target when the planner UI provides no selection payload.
@@ -97,6 +101,21 @@ local function mapper_matches_planner_target(mapper, selected_prototype, mapper_
   end
 
   return mapper_count == 1 and mapper ~= nil
+end
+
+-- When both mapper sides are the same prototype, changing one side should not silently clear the other.
+local function should_mutate_planner_mapper(mapper, mapper_type, source, destination, selected_prototype, mapper_count)
+  if not mapper or not mapper_matches_planner_target(mapper, selected_prototype, mapper_count) then
+    return false
+  end
+
+  if source and destination and source.name == destination.name and source.type == destination.type then
+    if mapper_type == "to" then
+      return false
+    end
+  end
+
+  return true
 end
 
 -- Clear the quality on one upgrade mapper so the planner shows Any quality.
@@ -129,12 +148,13 @@ local function apply_any_quality_to_upgrade_planner(stack, selected_prototype)
 
   for i = 1, mapper_count do
     local source = stack.get_mapper(i, "from")
-    if mapper_matches_planner_target(source, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "from", source) then
+    local destination = stack.get_mapper(i, "to")
+
+    if should_mutate_planner_mapper(source, "from", source, destination, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "from", source) then
       changes = changes + 1
     end
 
-    local destination = stack.get_mapper(i, "to")
-    if mapper_matches_planner_target(destination, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "to", destination) then
+    if should_mutate_planner_mapper(destination, "to", source, destination, selected_prototype, mapper_count) and apply_any_quality_to_upgrade_mapper(stack, i, "to", destination) then
       changes = changes + 1
     end
   end
@@ -203,7 +223,9 @@ local function apply_quality_to_upgrade_planner(stack, quality_name, selected_pr
 
   for i = 1, mapper_count do
     local source = stack.get_mapper(i, "from")
-    if mapper_matches_planner_target(source, selected_prototype, mapper_count) and source.quality ~= quality_name then
+    local destination = stack.get_mapper(i, "to")
+
+    if should_mutate_planner_mapper(source, "from", source, destination, selected_prototype, mapper_count) and source.quality ~= quality_name then
       source.quality = quality_name
       source.comparator = nil
 
@@ -216,8 +238,7 @@ local function apply_quality_to_upgrade_planner(stack, quality_name, selected_pr
       end
     end
 
-    local destination = stack.get_mapper(i, "to")
-    if mapper_matches_planner_target(destination, selected_prototype, mapper_count) and destination.quality ~= quality_name then
+    if should_mutate_planner_mapper(destination, "to", source, destination, selected_prototype, mapper_count) and destination.quality ~= quality_name then
       destination.quality = quality_name
 
       local ok = pcall(function()
@@ -302,10 +323,7 @@ local function apply_quality_maxer(player, event)
   local has_blueprint_to_setup = player.blueprint_to_setup and player.blueprint_to_setup.valid_for_read
   local has_cursor_ghost = player.cursor_ghost ~= nil
 
-  if not has_cursor_stack and not has_blueprint_to_setup and not has_cursor_ghost then
-    changes = changes + pipette_selected_prototype(player, event, quality_name)
-  end
-
+  -- The shortcut is explicitly for mutating the active ghost/planner target, not for pipetting a new item into hand.
   changes = changes + set_cursor_ghost_quality(player, quality_name)
 
   if has_cursor_stack then
