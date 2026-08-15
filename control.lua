@@ -323,7 +323,10 @@ local function apply_quality_maxer(player, event)
   local has_blueprint_to_setup = player.blueprint_to_setup and player.blueprint_to_setup.valid_for_read
   local has_cursor_ghost = player.cursor_ghost ~= nil
 
-  -- The shortcut is explicitly for mutating the active ghost/planner target, not for pipetting a new item into hand.
+  if not has_cursor_stack and not has_blueprint_to_setup and not has_cursor_ghost then
+    changes = changes + pipette_selected_prototype(player, event, quality_name)
+  end
+
   changes = changes + set_cursor_ghost_quality(player, quality_name)
 
   if has_cursor_stack then
