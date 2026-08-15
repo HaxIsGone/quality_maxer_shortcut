@@ -1,8 +1,8 @@
 # quality_maxer_shortcut
 A Factorio mod that adds a shortcut and hotkey (`ALT+Q`) to push target quality to the highest available quality tier.
-# Quality maxer - shortcut
+# Quality maxer - hotkeys
 
-A Factorio mod that adds a shortcut and hotkey (`ALT+Q`) to push target quality to the highest available quality tier.
+A Factorio mod that adds the `ALT+Q` and `ALT+G` hotkeys to push target quality to the highest available quality tier or clear it to Any quality.
 
 ## What it updates
 
@@ -19,5 +19,5 @@ A Factorio mod that adds a shortcut and hotkey (`ALT+Q`) to push target quality 
 ## Usage
 
 1. Hold a blueprint or upgrade planner (or have a building ghost in cursor).
-2. Click the `Max quality` shortcut or press `ALT+Q`.
-3. The mod updates all supported targets to the highest available quality.
+2. Press `ALT+Q` for maximum quality or `ALT+G` for Any quality.
+3. The mod updates all supported targets without taking a new item into hand.
